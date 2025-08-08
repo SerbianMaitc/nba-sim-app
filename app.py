@@ -175,16 +175,21 @@ with col_left:
         positions_remaining = unfilled_positions(team_name)
         pos_choice = st.selectbox("Choose position", options=positions_remaining, key="draft_pos")
 
-        # candidate pool filtered by position (sorted best-first)
-        cands = pool_for_position(st.session_state.pool, pos_choice)
+        # candidate pool filtered by position (FULL list, unsorted for variety)
+        cands = [p for p in st.session_state.pool if (p.pos_primary == pos_choice or pos_choice in p.pos_secondary)]
 
-        # create a stable 5-option list for the CURRENT pick
+        # create a stable 5-option list for the CURRENT pick (sample from ALL candidates)
         opt_key = f"opts_r{st.session_state.draft_round}_i{st.session_state.draft_index}_{team_name}_{pos_choice}"
         if opt_key not in st.session_state:
-            top_slice = cands[:12]  # look at top 12 for variety
-            k = min(5, len(top_slice))
-            st.session_state[opt_key] = random.sample(top_slice, k) if k > 0 else []
+            k = min(5, len(cands))
+            st.session_state[opt_key] = random.sample(cands, k) if k > 0 else []
         shown = st.session_state[opt_key]
+
+        # Optional reshuffle button
+        if st.button("🎲 Reshuffle options"):
+            k = min(5, len(cands))
+            st.session_state[opt_key] = random.sample(cands, k) if k > 0 else []
+            _rerun()
 
         pick_choice = st.selectbox(
             "Pick player",
@@ -237,6 +242,7 @@ with col_right:
         for pos in POSITIONS:
             p = st.session_state.team_b[pos]
             st.write(f"{pos}: {p.name if p else '—'}")
+
 
 # ----------------------------- Simulate -----------------------------
 ready = all(st.session_state.team_a.values()) and all(st.session_state.team_b.values())
